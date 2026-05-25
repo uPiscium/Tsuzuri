@@ -1,0 +1,30 @@
+[project]
+name = "tsuzuri"
+version = "0.1.0"
+description = "A standard Python project managed by uv and Nix"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0.0",
+]
+
+[project.scripts]
+tsuzuri = "tsuzuri.cli:main"
+
+exclude = [
+    "**/__pycache__",
+    "**/*.egg-info",
+    "**/.direnv",
+    "**/.venv",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.9.0",
+    "pytest>=8.0.0",
+    "ruff>=0.3.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
