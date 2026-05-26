@@ -17,3 +17,6 @@ wheels/
 
 # env file
 .env
+
+# Local pipeline artifacts
+outputs/

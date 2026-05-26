@@ -27,11 +27,11 @@ test target="tests/":
     @echo "==> Running Tests (Pytest) on {{target}}..."
     uv run pytest {{target}} -v
 
-# 現在のCLIをローカル環境で起動します
-deploy:
+# 最小パイプラインをローカル環境で起動します
+deploy query="AI regulation latest developments":
     @echo "==> Deploying Tsuzuri locally..."
     uv sync
-    PYTHONPATH=src uv run python -m tsuzuri.cli
+    PYTHONPATH=src uv run python -m tsuzuri.cli run "{{query}}"
 
 # =============================================================================
 # 複合タスク (Pipelines)
