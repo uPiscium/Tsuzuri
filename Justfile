@@ -27,6 +27,12 @@ test target="tests/":
     @echo "==> Running Tests (Pytest) on {{target}}..."
     uv run pytest {{target}} -v
 
+# 現在のCLIをローカル環境で起動します
+deploy:
+    @echo "==> Deploying Tsuzuri locally..."
+    uv sync
+    PYTHONPATH=src uv run python -m tsuzuri.cli
+
 # =============================================================================
 # 複合タスク (Pipelines)
 # =============================================================================
@@ -43,4 +49,3 @@ check-all: lint typecheck test
 sync:
     @echo "==> Syncing dependencies with uv..."
     uv sync
-
