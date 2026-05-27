@@ -33,6 +33,12 @@ deploy query="AI regulation latest developments":
     uv sync
     PYTHONPATH=src uv run python -m tsuzuri.cli run "{{query}}"
 
+# 外部アプリ向けHTTP APIを起動します
+api host="127.0.0.1" port="8000":
+    @echo "==> Starting Tsuzuri API on {{host}}:{{port}}..."
+    uv sync
+    PYTHONPATH=src uv run uvicorn tsuzuri.api:app --host {{host}} --port {{port}}
+
 # =============================================================================
 # 複合タスク (Pipelines)
 # =============================================================================

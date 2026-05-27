@@ -7,9 +7,8 @@ research pipeline. The target flow is search, fetch, filter, summarize, render a
 cited Markdown report, and optionally upload or notify through external services.
 
 The current implementation contains a minimal runnable local pipeline. It can
-search through SearXNG, filter URLs, fetch HTML documents, save local artifacts,
-and optionally upload artifacts to WebDAV. LLM summarization is not implemented
-yet.
+search through SearXNG, filter URLs, fetch HTML documents, summarize through
+Ollama, save local artifacts, and optionally upload artifacts to WebDAV.
 
 ## Current Status
 
@@ -20,19 +19,19 @@ Implemented:
 - Rule-based query expansion.
 - Async SearXNG JSON API client.
 - HTML fetch validation and extraction with `httpx` and `trafilatura`.
+- PDF fetching with PyMuPDF.
 - Local artifact storage under `outputs/{run_id}/`.
-- Minimal orchestrator command for search, filtering, HTML fetch, and artifact
-  saving.
+- Minimal orchestrator command for search, filtering, HTML fetch, summarization,
+  report rendering, and artifact saving.
 - Optional WebDAV artifact upload with warn-and-continue failure behavior.
 - Citation extraction, validation, and final Markdown source rendering.
+- FastAPI HTTP API for external applications.
 - Unit tests for the implemented modules.
 
 Not implemented yet:
 
-- PDF fetcher.
-- Ollama map/reduce summarization.
 - Discord notification.
-- PDF fetcher.
+- Cluster/global reduce summarization.
 
 ## Requirements
 
@@ -86,6 +85,31 @@ Artifacts are saved under `outputs/{run_id}/`. WebDAV upload is attempted when
 `webdav_base_url`, `NEXTCLOUD_USERNAME`, and `NEXTCLOUD_PASSWORD` are available.
 Upload failures are reported as warnings and do not fail the run.
 
+## HTTP API
+
+Start the API server:
+
+```bash
+just api
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8000/healthz
+```
+
+Run the pipeline from an external app:
+
+```bash
+curl -X POST http://127.0.0.1:8000/runs \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"AI regulation latest developments"}'
+```
+
+The response includes run counts, warnings, and the local path to
+`final_report.md`.
+
 ## Development
 
 Run all checks:
@@ -125,8 +149,7 @@ Secret values are expected through environment variables, with placeholders in
 
 Next implementation slices:
 
-1. Add PDF fetching with PyMuPDF.
-2. Add deterministic document quality filtering.
-3. Add Ollama map/reduce summarization.
-4. Add final report rendering into the orchestrator.
-5. Add Discord notification.
+1. Add deterministic document quality filtering.
+2. Add cluster/global reduce summarization.
+3. Add background job support for API runs.
+4. Add Discord notification.

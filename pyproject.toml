@@ -5,10 +5,12 @@ description = "A standard Python project managed by uv and Nix"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.115.0",
     "httpx>=0.27.0",
     "pymupdf>=1.24.0",
     "pydantic>=2.0.0",
     "trafilatura>=1.8.0",
+    "uvicorn>=0.30.0",
 ]
 
 [project.scripts]
