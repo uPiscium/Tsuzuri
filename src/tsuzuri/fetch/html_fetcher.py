@@ -98,7 +98,7 @@ class HtmlFetcher:
     ) -> ExtractedDocument:
         return ExtractedDocument.model_validate(
             {
-                "doc_id": f"Source-{item.rank}",
+                "doc_id": _doc_id_for_item(item),
                 "url": item.url,
                 "normalized_url": item.normalized_url,
                 "document_type": "html",
@@ -135,3 +135,9 @@ class HtmlFetcher:
 
 def _extract_with_trafilatura(html: str) -> str | None:
     return trafilatura.extract(html, include_comments=False, include_tables=False)
+
+
+def _doc_id_for_item(item: FilteredUrl) -> str:
+    if item.search_id.startswith("Source-"):
+        return item.search_id
+    return f"Source-{item.rank}"

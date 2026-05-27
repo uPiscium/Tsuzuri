@@ -3,7 +3,7 @@ from pathlib import Path
 
 from tsuzuri.config import RuntimeConfig
 from tsuzuri.pipeline import MinimalPipeline
-from tsuzuri.schemas import ExtractedDocument, FilteredUrl, SearchResult
+from tsuzuri.schemas import ExtractedDocument, FilteredUrl, MapSummary, SearchResult
 from tsuzuri.storage import ArtifactStore
 from tsuzuri.storage.nextcloud_webdav import WebdavUploadResult
 
@@ -58,6 +58,26 @@ class FakeWebdavUploader:
         )
 
 
+class FakeMapSummarizer:
+    async def summarize(self, document: ExtractedDocument) -> MapSummary:
+        return MapSummary(
+            doc_id=document.doc_id,
+            title=document.title,
+            document_type=document.document_type,
+            language="en",
+            relevance_score=4,
+            is_news_like=True,
+            is_search_noise=False,
+            topic_tags=["AI regulation"],
+            entities=["Example"],
+            key_facts=["A regulator announced an AI policy update."],
+            claims=[],
+            uncertainties=[],
+            conflicting_points=[],
+            short_summary="A regulator announced an AI policy update.",
+        )
+
+
 def test_minimal_pipeline_saves_artifacts_and_returns_warnings(tmp_path: Path) -> None:
     async def run_pipeline() -> None:
         uploader = FakeWebdavUploader()
@@ -70,6 +90,7 @@ def test_minimal_pipeline_saves_artifacts_and_returns_warnings(tmp_path: Path) -
             ),
             search_client=FakeSearchClient(),
             html_fetcher=FakeHtmlFetcher(),
+            map_summarizer=FakeMapSummarizer(),
             artifact_store=ArtifactStore(tmp_path, run_id="run-1"),
             webdav_uploader=uploader,
         )
@@ -81,9 +102,12 @@ def test_minimal_pipeline_saves_artifacts_and_returns_warnings(tmp_path: Path) -
         assert result.filtered_url_count == 1
         assert result.extracted_document_count == 1
         assert result.failed_fetch_count == 0
-        assert result.warnings == ["upload warning"] * 7
+        assert result.map_summary_count == 1
+        assert result.final_report_path == tmp_path / "run-1" / "final_report.md"
+        assert result.warnings == ["upload warning"] * 10
         assert "run-1/summary.json" in uploader.remote_paths
         assert "run-1/warnings.json" in uploader.remote_paths
+        assert "run-1/final_report.md" in uploader.remote_paths
 
     import asyncio
 
@@ -91,5 +115,10 @@ def test_minimal_pipeline_saves_artifacts_and_returns_warnings(tmp_path: Path) -
 
     summary = json.loads((tmp_path / "run-1" / "summary.json").read_text())
     assert summary["query"] == "AI regulation"
-    assert summary["warnings"] == ["upload warning"] * 7
+    assert summary["map_summary_count"] == 1
+    assert summary["final_report"] == "final_report.md"
+    assert summary["warnings"] == ["upload warning"] * 10
+    final_report = (tmp_path / "run-1" / "final_report.md").read_text()
+    assert "# News Brief: AI regulation" in final_report
+    assert "[Source-1]" in final_report
     assert (tmp_path / "run-1" / "warnings.json").exists()

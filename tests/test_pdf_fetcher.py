@@ -59,6 +59,31 @@ def test_pdf_fetcher_returns_extracted_document() -> None:
     asyncio.run(run())
 
 
+def test_pdf_fetcher_uses_assigned_source_id() -> None:
+    pdf = _pdf_bytes(text="This PDF contains useful extracted article text.")
+    assigned_item = _item().model_copy(update={"search_id": "Source-42"})
+
+    async def run() -> None:
+        transport = httpx.MockTransport(
+            lambda request: httpx.Response(200, content=pdf, request=request)
+        )
+        async with httpx.AsyncClient(transport=transport) as client:
+            fetcher = PdfFetcher(
+                timeout_sec=10,
+                max_file_mb=1,
+                max_pages=5,
+                min_chars=20,
+                user_agent="Tsuzuri/0.1",
+                client=client,
+            )
+            result = await fetcher.fetch(assigned_item)
+
+        assert isinstance(result, ExtractedDocument)
+        assert result.doc_id == "Source-42"
+
+    asyncio.run(run())
+
+
 def test_pdf_fetcher_returns_download_failure_for_http_error() -> None:
     async def run() -> None:
         transport = httpx.MockTransport(

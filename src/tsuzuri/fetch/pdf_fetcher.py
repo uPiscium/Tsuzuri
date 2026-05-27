@@ -87,7 +87,7 @@ class PdfFetcher:
     ) -> ExtractedDocument:
         return ExtractedDocument.model_validate(
             {
-                "doc_id": f"Source-{item.rank}",
+                "doc_id": _doc_id_for_item(item),
                 "url": item.url,
                 "normalized_url": item.normalized_url,
                 "document_type": "pdf",
@@ -127,3 +127,9 @@ class _PdfFetchError(Exception):
         super().__init__(reason if detail is None else f"{reason}: {detail}")
         self.reason = reason
         self.detail = detail
+
+
+def _doc_id_for_item(item: FilteredUrl) -> str:
+    if item.search_id.startswith("Source-"):
+        return item.search_id
+    return f"Source-{item.rank}"

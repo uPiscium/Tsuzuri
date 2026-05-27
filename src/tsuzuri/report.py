@@ -3,7 +3,7 @@
 import re
 from collections.abc import Iterable
 
-from tsuzuri.schemas import ExtractedDocument, FinalReport
+from tsuzuri.schemas import ExtractedDocument, FinalReport, MapSummary
 
 SOURCE_ID_PATTERN = re.compile(r"\[Source-(\d+)]")
 
@@ -64,3 +64,48 @@ def render_final_report(
         source_count=len(source_lines),
         warnings=warnings,
     )
+
+
+def render_news_brief(
+    *,
+    query: str,
+    summaries: Iterable[MapSummary],
+    documents: Iterable[ExtractedDocument],
+) -> FinalReport:
+    """Render a simple cited Markdown news brief from map summaries."""
+    useful_summaries = [
+        summary
+        for summary in summaries
+        if not summary.is_search_noise and summary.relevance_score >= 3
+    ]
+    if not useful_summaries:
+        return render_final_report(
+            f"News Brief: {query}",
+            "No sufficiently relevant source summaries were generated.",
+            documents,
+        )
+
+    lines = ["## Executive Summary", ""]
+    for summary in useful_summaries[:10]:
+        lines.append(f"- {summary.short_summary} [{summary.doc_id}]")
+
+    lines.extend(["", "## Key Facts", ""])
+    for summary in useful_summaries[:10]:
+        for fact in summary.key_facts[:3]:
+            lines.append(f"- {fact} [{summary.doc_id}]")
+
+    lines.extend(["", "## Uncertainties", ""])
+    uncertainties = [
+        (summary.doc_id, uncertainty)
+        for summary in useful_summaries
+        for uncertainty in summary.uncertainties[:2]
+    ]
+    if uncertainties:
+        for doc_id, uncertainty in uncertainties[:10]:
+            lines.append(f"- {uncertainty} [{doc_id}]")
+    else:
+        lines.append(
+            "- No major uncertainties were identified in the selected summaries."
+        )
+
+    return render_final_report(f"News Brief: {query}", "\n".join(lines), documents)

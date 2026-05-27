@@ -36,6 +36,11 @@ class RuntimeConfig(BaseModel):
     search_categories: list[str] = ["news", "general"]
     search_retry_count: int = 2
     allowed_languages: list[str] = ["en", "ja"]
+    llm_temperature: float = 0.2
+    llm_num_ctx: int = 8192
+    llm_retry_count: int = 1
+    max_map_documents: int = 20
+    min_relevance_score: int = 3
     nextcloud_username: str | None = None
     nextcloud_password: str | None = None
     discord_webhook_url: str | None = None

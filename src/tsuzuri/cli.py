@@ -26,6 +26,9 @@ def main() -> None:
     print(f"filtered_urls: {result.filtered_url_count}")
     print(f"extracted_documents: {result.extracted_document_count}")
     print(f"failed_fetches: {result.failed_fetch_count}")
+    print(f"map_summaries: {result.map_summary_count}")
+    if result.final_report_path is not None:
+        print(f"final_report: {result.final_report_path}")
     for warning in result.warnings:
         print(f"warning: {warning}")
 

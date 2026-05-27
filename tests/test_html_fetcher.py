@@ -47,6 +47,30 @@ def test_html_fetcher_returns_extracted_document() -> None:
     asyncio.run(run())
 
 
+def test_html_fetcher_uses_assigned_source_id() -> None:
+    assigned_item = _item().model_copy(update={"search_id": "Source-42"})
+
+    async def run() -> None:
+        transport = httpx.MockTransport(
+            lambda request: httpx.Response(200, text="<html>ok</html>", request=request)
+        )
+        async with httpx.AsyncClient(transport=transport) as client:
+            fetcher = HtmlFetcher(
+                timeout_sec=10,
+                min_chars=20,
+                allowed_languages={"en"},
+                user_agent="Tsuzuri/0.1",
+                client=client,
+                extractor=lambda html: "This is a useful extracted article body.",
+            )
+            result = await fetcher.fetch(assigned_item)
+
+        assert isinstance(result, ExtractedDocument)
+        assert result.doc_id == "Source-42"
+
+    asyncio.run(run())
+
+
 def test_html_fetcher_returns_failed_fetch_for_http_error() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(403, request=request)
