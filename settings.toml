@@ -1,7 +1,7 @@
 searxng_base_url = "https://search.arc.upiscium.dev"
 ollama_base_url = "https://ollama-caspar.arc.upiscium.dev"
 ollama_model = "gemma4:26b"
-webdav_base_url = "https://nas.arc.upiscium.dev/remote.php/dav/files/upiscium"
+webdav_base_url = "https://nas.arc.upiscium.dev/remote.php/dav/files/upiscium/NAS/Tsuzuri"
 query_timeout_s = 10.0
 fetch_timeout_s = 30.0
 ollama_timeout_s = 60.0

@@ -56,17 +56,25 @@ def test_webdav_upload_puts_bytes_with_auth_and_content_type() -> None:
         assert result.remote_url == (
             "https://nextcloud.example/remote.php/dav/files/user/research/runs/run-1/report.md"
         )
-        assert [request.method for request in requests] == ["MKCOL", "MKCOL", "PUT"]
+        assert [request.method for request in requests] == [
+            "MKCOL",
+            "MKCOL",
+            "MKCOL",
+            "PUT",
+        ]
         assert str(requests[0].url) == (
-            "https://nextcloud.example/remote.php/dav/files/user/research/runs"
+            "https://nextcloud.example/remote.php/dav/files/user/research"
         )
         assert str(requests[1].url) == (
+            "https://nextcloud.example/remote.php/dav/files/user/research/runs"
+        )
+        assert str(requests[2].url) == (
             "https://nextcloud.example/remote.php/dav/files/user/research/runs/run-1"
         )
-        assert str(requests[2].url) == result.remote_url
-        assert requests[2].headers["Content-Type"] == "text/markdown"
-        assert requests[2].headers["Authorization"].startswith("Basic ")
-        assert requests[2].content == b"report"
+        assert str(requests[3].url) == result.remote_url
+        assert requests[3].headers["Content-Type"] == "text/markdown"
+        assert requests[3].headers["Authorization"].startswith("Basic ")
+        assert requests[3].content == b"report"
 
     asyncio.run(run())
 
@@ -97,6 +105,50 @@ def test_webdav_upload_ignores_existing_remote_directories() -> None:
 
         assert result.uploaded is True
         assert [request.method for request in requests] == ["MKCOL", "PUT"]
+
+    asyncio.run(run())
+
+
+def test_webdav_upload_creates_nextcloud_base_directories() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.method == "MKCOL":
+            return httpx.Response(201, request=request)
+        return httpx.Response(201, request=request)
+
+    async def run() -> None:
+        transport = httpx.MockTransport(handler)
+        async with httpx.AsyncClient(transport=transport) as client:
+            uploader = WebdavUploader(
+                webdav_url="https://nextcloud.example/remote.php/dav/files/user/NAS/Tsuzuri",
+                username="user",
+                password="pass",
+                timeout_sec=10,
+                client=client,
+            )
+
+            result = await uploader.upload_bytes(
+                content=b"report", remote_path="run-1/report.md"
+            )
+
+        assert result.uploaded is True
+        assert [request.method for request in requests] == [
+            "MKCOL",
+            "MKCOL",
+            "MKCOL",
+            "PUT",
+        ]
+        assert str(requests[0].url) == (
+            "https://nextcloud.example/remote.php/dav/files/user/NAS"
+        )
+        assert str(requests[1].url) == (
+            "https://nextcloud.example/remote.php/dav/files/user/NAS/Tsuzuri"
+        )
+        assert str(requests[2].url) == (
+            "https://nextcloud.example/remote.php/dav/files/user/NAS/Tsuzuri/run-1"
+        )
 
     asyncio.run(run())
 

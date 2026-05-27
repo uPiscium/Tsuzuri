@@ -1,6 +1,7 @@
 """Nextcloud WebDAV upload support."""
 
 from pathlib import PurePosixPath
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from pydantic import BaseModel, ConfigDict
@@ -81,19 +82,25 @@ class WebdavUploader:
     ) -> None:
         assert self._webdav_url is not None
         parent_parts = PurePosixPath(remote_path.lstrip("/")).parent.parts
+        for directory_url in _base_directory_urls(self._webdav_url):
+            await self._mkcol(client, directory_url)
+
         current_path = ""
         for part in parent_parts:
             if part in ("", "."):
                 continue
             current_path = str(PurePosixPath(current_path) / part)
-            response = await client.request(
-                "MKCOL",
-                _join_webdav_url(self._webdav_url, current_path),
-                auth=(self._username or "", self._password or ""),
-            )
-            if response.status_code in {200, 201, 204, 405}:
-                continue
-            response.raise_for_status()
+            await self._mkcol(client, _join_webdav_url(self._webdav_url, current_path))
+
+    async def _mkcol(self, client: httpx.AsyncClient, url: str) -> None:
+        response = await client.request(
+            "MKCOL",
+            url,
+            auth=(self._username or "", self._password or ""),
+        )
+        if response.status_code in {200, 201, 204, 405}:
+            return
+        response.raise_for_status()
 
     def _missing_config_warning(self) -> str | None:
         missing = []
@@ -111,3 +118,24 @@ class WebdavUploader:
 def _join_webdav_url(base_url: str, remote_path: str) -> str:
     clean_path = str(PurePosixPath(remote_path.lstrip("/")))
     return f"{base_url}/{clean_path}"
+
+
+def _base_directory_urls(base_url: str) -> list[str]:
+    parts = urlsplit(base_url)
+    path_parts = PurePosixPath(parts.path).parts
+    try:
+        files_index = path_parts.index("files")
+    except ValueError:
+        return []
+
+    user_index = files_index + 1
+    if len(path_parts) <= user_index + 1:
+        return []
+
+    urls: list[str] = []
+    current_parts = path_parts[: user_index + 1]
+    for part in path_parts[user_index + 1 :]:
+        current_parts = (*current_parts, part)
+        path = "/" + "/".join(current_parts[1:])
+        urls.append(urlunsplit((parts.scheme, parts.netloc, path, "", "")))
+    return urls
