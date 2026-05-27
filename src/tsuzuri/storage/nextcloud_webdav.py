@@ -49,6 +49,7 @@ class WebdavUploader:
 
         try:
             if self._client is not None:
+                await self._create_parent_directories(self._client, remote_path)
                 response = await self._client.put(
                     remote_url,
                     content=content,
@@ -57,6 +58,7 @@ class WebdavUploader:
                 )
             else:
                 async with httpx.AsyncClient(timeout=self._timeout) as client:
+                    await self._create_parent_directories(client, remote_path)
                     response = await client.put(
                         remote_url,
                         content=content,
@@ -73,6 +75,25 @@ class WebdavUploader:
             )
 
         return WebdavUploadResult(uploaded=True, skipped=False, remote_url=remote_url)
+
+    async def _create_parent_directories(
+        self, client: httpx.AsyncClient, remote_path: str
+    ) -> None:
+        assert self._webdav_url is not None
+        parent_parts = PurePosixPath(remote_path.lstrip("/")).parent.parts
+        current_path = ""
+        for part in parent_parts:
+            if part in ("", "."):
+                continue
+            current_path = str(PurePosixPath(current_path) / part)
+            response = await client.request(
+                "MKCOL",
+                _join_webdav_url(self._webdav_url, current_path),
+                auth=(self._username or "", self._password or ""),
+            )
+            if response.status_code in {200, 201, 204, 405}:
+                continue
+            response.raise_for_status()
 
     def _missing_config_warning(self) -> str | None:
         missing = []
