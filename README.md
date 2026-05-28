@@ -2,13 +2,27 @@
 
 Local LLM news research pipeline.
 
-Tsuzuri is an in-progress Python implementation of a local-LLM-powered news
-research pipeline. The target flow is search, fetch, filter, summarize, render a
-cited Markdown report, and optionally upload or notify through external services.
+Tsuzuri is an MVP Python implementation of a local-LLM-powered news research
+pipeline. It searches, fetches, summarizes, renders a cited Markdown report, and
+optionally uploads artifacts to Nextcloud WebDAV.
 
 The current implementation contains a minimal runnable local pipeline. It can
 search through SearXNG, filter URLs, fetch HTML documents, summarize through
 Ollama, save local artifacts, and optionally upload artifacts to WebDAV.
+
+## MVP Status
+
+This project is ready for local, personal, and demo use through the CLI, HTTP
+API, Docker Compose, and React web UI. It is not yet hardened for public
+multi-user production deployment.
+
+Production gaps to address before public exposure:
+
+- No authentication or authorization on the API/UI.
+- Run state is in memory while the API process is alive.
+- Run history is not reconstructed from existing `outputs/` artifacts yet.
+- Cluster/global reduce summarization is not implemented.
+- Discord notification is not implemented.
 
 ## Current Status
 
@@ -26,10 +40,14 @@ Implemented:
 - Optional WebDAV artifact upload with warn-and-continue failure behavior.
 - Citation extraction, validation, and final Markdown source rendering.
 - FastAPI HTTP API for external applications.
+- React dark themed web UI with progress polling and final report preview.
+- Docker and Docker Compose support.
 - Unit tests for the implemented modules.
 
 Not implemented yet:
 
+- Authentication / access control.
+- Persistent run history across API restarts.
 - Discord notification.
 - Cluster/global reduce summarization.
 
@@ -109,6 +127,9 @@ curl -X POST http://127.0.0.1:8000/runs \
 
 The response includes run counts, warnings, and the local path to
 `final_report.md`.
+
+The API starts runs in the background. Poll `GET /runs/{run_id}` for progress,
+then fetch `GET /runs/{run_id}/final-report` after completion.
 
 The React web UI is served from the API after building frontend assets:
 
@@ -194,5 +215,6 @@ Next implementation slices:
 
 1. Add deterministic document quality filtering.
 2. Add cluster/global reduce summarization.
-3. Add background job support for API runs.
-4. Add Discord notification.
+3. Add persistent run history from `outputs/{run_id}/summary.json`.
+4. Add API/UI authentication before public deployment.
+5. Add Discord notification.
