@@ -110,6 +110,22 @@ curl -X POST http://127.0.0.1:8000/runs \
 The response includes run counts, warnings, and the local path to
 `final_report.md`.
 
+The React web UI is served from the API after building frontend assets:
+
+```bash
+just frontend-build
+just api
+```
+
+Open `http://127.0.0.1:8000/ui/` for the dark themed run dashboard with progress
+polling and final report preview.
+
+For frontend-only development:
+
+```bash
+just frontend-dev
+```
+
 ## Docker
 
 Build the local image:
@@ -133,6 +149,9 @@ just docker-down
 The compose service exposes the API on `http://127.0.0.1:8000`, mounts
 `./outputs` for artifacts, reads `.env` for secrets when present, and mounts
 `settings.toml` read-only inside the container.
+
+The Docker image builds the React frontend and serves it from `/ui/` in the same
+FastAPI container.
 
 ## Development
 

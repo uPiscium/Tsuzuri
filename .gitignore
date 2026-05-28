@@ -20,3 +20,8 @@ wheels/
 
 # Local pipeline artifacts
 outputs/
+
+# Built frontend assets
+src/tsuzuri/static/
+frontend/dist/
+frontend/node_modules/

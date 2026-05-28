@@ -39,6 +39,18 @@ api host="127.0.0.1" port="8000":
     uv sync
     PYTHONPATH=src uv run uvicorn tsuzuri.api:app --host {{host}} --port {{port}}
 
+# React frontendの開発サーバーを起動します
+frontend-dev:
+    @echo "==> Starting Tsuzuri frontend dev server..."
+    npm --prefix frontend install
+    npm --prefix frontend run dev
+
+# React frontendをFastAPI配信用にビルドします
+frontend-build:
+    @echo "==> Building Tsuzuri frontend..."
+    npm --prefix frontend install
+    npm --prefix frontend run build
+
 # Dockerイメージをビルドします
 docker-build tag="tsuzuri:local":
     @echo "==> Building Docker image {{tag}}..."

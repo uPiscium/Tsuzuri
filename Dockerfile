@@ -1,3 +1,12 @@
+FROM node:24-slim AS frontend-builder
+
+WORKDIR /frontend
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend ./
+RUN npm run build
+
 FROM python:3.13-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -13,6 +22,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --locked --no-dev
 
 COPY src ./src
+COPY --from=frontend-builder /src/tsuzuri/static ./src/tsuzuri/static
 COPY settings.toml ./settings.toml
 
 RUN mkdir -p outputs

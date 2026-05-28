@@ -1,6 +1,6 @@
 """Minimal runnable research pipeline."""
 
-from collections.abc import Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,6 +19,22 @@ from tsuzuri.schemas import (
 )
 from tsuzuri.search import SearxngClient, build_queries
 from tsuzuri.storage import ArtifactStore, WebdavUploader
+
+ProgressCallback = Callable[["PipelineProgress"], Awaitable[None]]
+
+
+@dataclass(frozen=True)
+class PipelineProgress:
+    """Coarse-grained progress emitted while a run is executing."""
+
+    step: str
+    progress: int
+    search_result_count: int = 0
+    filtered_url_count: int = 0
+    extracted_document_count: int = 0
+    failed_fetch_count: int = 0
+    map_summary_count: int = 0
+    warnings: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -81,13 +97,26 @@ class MinimalPipeline:
             timeout_sec=config.upload_timeout_s,
         )
 
-    async def run(self, query: str) -> PipelineRunResult:
+    async def run(
+        self, query: str, progress_callback: ProgressCallback | None = None
+    ) -> PipelineRunResult:
         """Run the currently implemented subset of the pipeline."""
         warnings: list[str] = []
+        await _emit_progress(progress_callback, PipelineProgress("Preparing", 5))
         queries = build_queries(
             query, max_generated_queries=self._config.max_generated_queries
         )
+        await _emit_progress(progress_callback, PipelineProgress("Searching", 15))
         search_results = await self._search_all(queries, warnings)
+        await _emit_progress(
+            progress_callback,
+            PipelineProgress(
+                "Filtering",
+                30,
+                search_result_count=len(search_results),
+                warnings=warnings,
+            ),
+        )
         deduplicated = deduplicate_search_results(search_results)
         filtered_urls = filter_search_results(
             deduplicated,
@@ -96,8 +125,43 @@ class MinimalPipeline:
             max_urls_per_domain=self._config.max_urls_per_domain,
         )
         filtered_urls = _assign_source_ids(filtered_urls)
+        await _emit_progress(
+            progress_callback,
+            PipelineProgress(
+                "Fetching documents",
+                45,
+                search_result_count=len(search_results),
+                filtered_url_count=len(filtered_urls),
+                warnings=warnings,
+            ),
+        )
         documents, failures = await self._fetch_html_documents(filtered_urls)
+        await _emit_progress(
+            progress_callback,
+            PipelineProgress(
+                "Summarizing documents",
+                65,
+                search_result_count=len(search_results),
+                filtered_url_count=len(filtered_urls),
+                extracted_document_count=len(documents),
+                failed_fetch_count=len(failures),
+                warnings=warnings,
+            ),
+        )
         map_summaries = await self._summarize_documents(documents, warnings)
+        await _emit_progress(
+            progress_callback,
+            PipelineProgress(
+                "Rendering report",
+                82,
+                search_result_count=len(search_results),
+                filtered_url_count=len(filtered_urls),
+                extracted_document_count=len(documents),
+                failed_fetch_count=len(failures),
+                map_summary_count=len(map_summaries),
+                warnings=warnings,
+            ),
+        )
         final_report = render_news_brief(
             query=query, summaries=map_summaries, documents=documents
         )
@@ -113,6 +177,19 @@ class MinimalPipeline:
             self._artifact_store.save_json("final_report.json", final_report),
             self._artifact_store.save_text("final_report.md", final_report.markdown),
         ]
+        await _emit_progress(
+            progress_callback,
+            PipelineProgress(
+                "Uploading artifacts",
+                92,
+                search_result_count=len(search_results),
+                filtered_url_count=len(filtered_urls),
+                extracted_document_count=len(documents),
+                failed_fetch_count=len(failures),
+                map_summary_count=len(map_summaries),
+                warnings=warnings,
+            ),
+        )
         warnings.extend(await self._upload_artifacts(artifact_paths))
 
         summary_path = self._save_summary(
@@ -257,3 +334,11 @@ def _assign_source_ids(filtered_urls: list[FilteredUrl]) -> list[FilteredUrl]:
         item.model_copy(update={"search_id": f"Source-{index}"})
         for index, item in enumerate(filtered_urls, start=1)
     ]
+
+
+async def _emit_progress(
+    progress_callback: ProgressCallback | None, progress: PipelineProgress
+) -> None:
+    if progress_callback is None:
+        return
+    await progress_callback(progress)
