@@ -1,0 +1,15 @@
+services:
+  tsuzuri-api:
+    build: .
+    image: tsuzuri:local
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TSUZURI_SETTINGS_PATH: /app/settings.toml
+    volumes:
+      - ./outputs:/app/outputs
+      - ./settings.toml:/app/settings.toml:ro
+    restart: unless-stopped

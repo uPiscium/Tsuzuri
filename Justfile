@@ -39,6 +39,21 @@ api host="127.0.0.1" port="8000":
     uv sync
     PYTHONPATH=src uv run uvicorn tsuzuri.api:app --host {{host}} --port {{port}}
 
+# Dockerイメージをビルドします
+docker-build tag="tsuzuri:local":
+    @echo "==> Building Docker image {{tag}}..."
+    docker build -t {{tag}} .
+
+# Docker ComposeでAPIを起動します
+docker-up:
+    @echo "==> Starting Tsuzuri API with Docker Compose..."
+    docker compose up --build
+
+# Docker ComposeでAPIを停止します
+docker-down:
+    @echo "==> Stopping Tsuzuri API with Docker Compose..."
+    docker compose down
+
 # =============================================================================
 # 複合タスク (Pipelines)
 # =============================================================================

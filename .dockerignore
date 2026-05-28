@@ -1,0 +1,12 @@
+.direnv/
+.git/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.pyc
+.env
+outputs/
+Dockerfile
+docker-compose.yml

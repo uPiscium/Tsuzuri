@@ -110,6 +110,30 @@ curl -X POST http://127.0.0.1:8000/runs \
 The response includes run counts, warnings, and the local path to
 `final_report.md`.
 
+## Docker
+
+Build the local image:
+
+```bash
+just docker-build
+```
+
+Run the API with Docker Compose:
+
+```bash
+just docker-up
+```
+
+Stop it:
+
+```bash
+just docker-down
+```
+
+The compose service exposes the API on `http://127.0.0.1:8000`, mounts
+`./outputs` for artifacts, reads `.env` for secrets when present, and mounts
+`settings.toml` read-only inside the container.
+
 ## Development
 
 Run all checks:
