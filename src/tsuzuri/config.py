@@ -9,6 +9,42 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+ENV_OVERRIDES = {
+    "TSUZURI_SEARXNG_BASE_URL": "searxng_base_url",
+    "TSUZURI_OLLAMA_BASE_URL": "ollama_base_url",
+    "TSUZURI_OLLAMA_MODEL": "ollama_model",
+    "TSUZURI_WEBDAV_BASE_URL": "webdav_base_url",
+    "TSUZURI_QUERY_TIMEOUT_S": "query_timeout_s",
+    "TSUZURI_FETCH_TIMEOUT_S": "fetch_timeout_s",
+    "TSUZURI_OLLAMA_TIMEOUT_S": "ollama_timeout_s",
+    "TSUZURI_UPLOAD_TIMEOUT_S": "upload_timeout_s",
+    "TSUZURI_MAX_CONCURRENT_FETCHES": "max_concurrent_fetches",
+    "TSUZURI_MIN_SUCCESS_CHARS": "min_success_chars",
+    "TSUZURI_BLOCKLISTED_DOMAINS": "blocklisted_domains",
+    "TSUZURI_BLOCKLISTED_EXTENSIONS": "blocklisted_extensions",
+    "TSUZURI_USER_AGENT": "user_agent",
+    "TSUZURI_OUTPUT_DIR": "output_dir",
+    "TSUZURI_MAX_GENERATED_QUERIES": "max_generated_queries",
+    "TSUZURI_PER_QUERY_RESULTS": "per_query_results",
+    "TSUZURI_MAX_URLS_PER_DOMAIN": "max_urls_per_domain",
+    "TSUZURI_SEARCH_LANGUAGE": "search_language",
+    "TSUZURI_SEARCH_CATEGORIES": "search_categories",
+    "TSUZURI_SEARCH_RETRY_COUNT": "search_retry_count",
+    "TSUZURI_ALLOWED_LANGUAGES": "allowed_languages",
+    "TSUZURI_LLM_TEMPERATURE": "llm_temperature",
+    "TSUZURI_LLM_NUM_CTX": "llm_num_ctx",
+    "TSUZURI_LLM_RETRY_COUNT": "llm_retry_count",
+    "TSUZURI_MAX_MAP_DOCUMENTS": "max_map_documents",
+    "TSUZURI_MIN_RELEVANCE_SCORE": "min_relevance_score",
+}
+
+LIST_FIELDS = {
+    "blocklisted_domains",
+    "blocklisted_extensions",
+    "search_categories",
+    "allowed_languages",
+}
+
 
 class RuntimeConfig(BaseModel):
     """Flat runtime config used by the current minimal pipeline."""
@@ -57,6 +93,7 @@ class RuntimeConfig(BaseModel):
         settings = _load_toml(settings_path)
         merged = {
             **settings,
+            **_load_env_overrides(env_values),
             "nextcloud_username": _env_value("NEXTCLOUD_USERNAME", env_values),
             "nextcloud_password": _env_value("NEXTCLOUD_PASSWORD", env_values),
             "discord_webhook_url": _env_value("DISCORD_WEBHOOK_URL", env_values),
@@ -90,3 +127,18 @@ def _env_value(key: str, env_values: dict[str, str]) -> str | None:
     if value is None or value == "":
         return None
     return value
+
+
+def _load_env_overrides(env_values: dict[str, str]) -> dict[str, Any]:
+    overrides: dict[str, Any] = {}
+    for env_key, config_key in ENV_OVERRIDES.items():
+        value = _env_value(env_key, env_values)
+        if value is None:
+            continue
+        if config_key in LIST_FIELDS:
+            overrides[config_key] = [
+                item.strip() for item in value.split(",") if item.strip()
+            ]
+        else:
+            overrides[config_key] = value
+    return overrides

@@ -168,8 +168,8 @@ just docker-down
 ```
 
 The compose service exposes the API on `http://127.0.0.1:8000`, mounts
-`./outputs` for artifacts, reads `.env` for secrets when present, and mounts
-`settings.toml` read-only inside the container.
+`./outputs` for artifacts, and reads `.env` for runtime configuration and
+secrets when present.
 
 The Docker image builds the React frontend and serves it from `/ui/` in the same
 FastAPI container.
@@ -177,7 +177,7 @@ FastAPI container.
 ### Use From Another Directory
 
 You can run Tsuzuri from outside this repository with only a Compose file,
-`.env`, `settings.toml`, and an `outputs/` directory.
+`.env`, and an `outputs/` directory.
 
 Copy `example.compose.yml` to your deployment directory as `compose.yml`:
 
@@ -185,37 +185,32 @@ Copy `example.compose.yml` to your deployment directory as `compose.yml`:
 mkdir -p tsuzuri-deploy/outputs
 cd tsuzuri-deploy
 curl -fsSLo compose.yml \
-  https://raw.githubusercontent.com/uPiscium/Tsuzuri/v0.1.0/example.compose.yml
+  https://raw.githubusercontent.com/uPiscium/Tsuzuri/v0.1.1/example.compose.yml
 ```
 
 Create `.env`:
 
 ```env
+TSUZURI_SEARXNG_BASE_URL=https://your-searxng.example.com
+TSUZURI_OLLAMA_BASE_URL=https://your-ollama.example.com
+TSUZURI_OLLAMA_MODEL=gemma4:26b
+TSUZURI_WEBDAV_BASE_URL=https://your-nextcloud.example.com/remote.php/dav/files/your-user/NAS/Tsuzuri
+
+TSUZURI_QUERY_TIMEOUT_S=10.0
+TSUZURI_FETCH_TIMEOUT_S=30.0
+TSUZURI_OLLAMA_TIMEOUT_S=60.0
+TSUZURI_UPLOAD_TIMEOUT_S=15.0
+TSUZURI_MAX_CONCURRENT_FETCHES=3
+TSUZURI_MIN_SUCCESS_CHARS=200
+TSUZURI_MAX_MAP_DOCUMENTS=5
+TSUZURI_SEARCH_LANGUAGE=en
+TSUZURI_SEARCH_CATEGORIES=news,general
+TSUZURI_ALLOWED_LANGUAGES=en,ja
+TSUZURI_USER_AGENT=Tsuzuri/0.1
+
 NEXTCLOUD_USERNAME=your-nextcloud-user
 NEXTCLOUD_PASSWORD=your-nextcloud-app-password
 DISCORD_WEBHOOK_URL=
-```
-
-Create `settings.toml`:
-
-```toml
-searxng_base_url = "https://your-searxng.example.com"
-ollama_base_url = "https://your-ollama.example.com"
-ollama_model = "gemma4:26b"
-webdav_base_url = "https://your-nextcloud.example.com/remote.php/dav/files/your-user/NAS/Tsuzuri"
-
-query_timeout_s = 10.0
-fetch_timeout_s = 30.0
-ollama_timeout_s = 60.0
-upload_timeout_s = 15.0
-
-max_concurrent_fetches = 3
-min_success_chars = 200
-max_map_documents = 5
-
-blocklisted_domains = []
-blocklisted_extensions = []
-user_agent = "Tsuzuri/0.1"
 ```
 
 Start the service:
@@ -256,11 +251,16 @@ uv run ruff check --fix tests/
 
 ## Configuration
 
-Non-secret defaults live in `settings.toml`.
+Non-secret defaults live in `settings.toml` for local runs. Docker deployments can
+use `TSUZURI_*` environment variables instead of mounting `settings.toml`.
 
 Secret values are expected through environment variables, with placeholders in
 `.env.example`:
 
+- `TSUZURI_SEARXNG_BASE_URL`
+- `TSUZURI_OLLAMA_BASE_URL`
+- `TSUZURI_OLLAMA_MODEL`
+- `TSUZURI_WEBDAV_BASE_URL`
 - `NEXTCLOUD_USERNAME`
 - `NEXTCLOUD_PASSWORD`
 - `DISCORD_WEBHOOK_URL`

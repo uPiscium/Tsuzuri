@@ -1,19 +1,16 @@
 services:
   tsuzuri:
     build:
-      context: https://github.com/uPiscium/Tsuzuri.git#v0.1.0
-    image: tsuzuri:v0.1.0
+      context: https://github.com/uPiscium/Tsuzuri.git#v0.1.1
+    image: tsuzuri:v0.1.1
     container_name: tsuzuri
     ports:
       - "8000:8000"
     env_file:
       - path: .env
         required: false
-    environment:
-      TSUZURI_SETTINGS_PATH: /app/settings.toml
     volumes:
       - ./outputs:/app/outputs
-      - ./settings.toml:/app/settings.toml:ro
     restart: unless-stopped
     healthcheck:
       test:
