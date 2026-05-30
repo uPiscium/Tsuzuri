@@ -174,6 +174,62 @@ The compose service exposes the API on `http://127.0.0.1:8000`, mounts
 The Docker image builds the React frontend and serves it from `/ui/` in the same
 FastAPI container.
 
+### Use From Another Directory
+
+You can run Tsuzuri from outside this repository with only a Compose file,
+`.env`, `settings.toml`, and an `outputs/` directory.
+
+Copy `example.compose.yml` to your deployment directory as `compose.yml`:
+
+```bash
+mkdir -p tsuzuri-deploy/outputs
+cd tsuzuri-deploy
+curl -fsSLo compose.yml \
+  https://raw.githubusercontent.com/uPiscium/Tsuzuri/v0.1.0/example.compose.yml
+```
+
+Create `.env`:
+
+```env
+NEXTCLOUD_USERNAME=your-nextcloud-user
+NEXTCLOUD_PASSWORD=your-nextcloud-app-password
+DISCORD_WEBHOOK_URL=
+```
+
+Create `settings.toml`:
+
+```toml
+searxng_base_url = "https://your-searxng.example.com"
+ollama_base_url = "https://your-ollama.example.com"
+ollama_model = "gemma4:26b"
+webdav_base_url = "https://your-nextcloud.example.com/remote.php/dav/files/your-user/NAS/Tsuzuri"
+
+query_timeout_s = 10.0
+fetch_timeout_s = 30.0
+ollama_timeout_s = 60.0
+upload_timeout_s = 15.0
+
+max_concurrent_fetches = 3
+min_success_chars = 200
+max_map_documents = 5
+
+blocklisted_domains = []
+blocklisted_extensions = []
+user_agent = "Tsuzuri/0.1"
+```
+
+Start the service:
+
+```bash
+docker compose up --build
+```
+
+Open the web UI:
+
+```text
+http://127.0.0.1:8000/ui/
+```
+
 ## Development
 
 Run all checks:
